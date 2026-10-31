@@ -1,0 +1,8 @@
+# Allowlist: keep subscriptions, backups and runtime files out of this repository.
+*
+!/.gitignore
+!/README.md
+!/templates/
+!/templates/routing.yaml
+!/scripts/
+!/scripts/check.rb
