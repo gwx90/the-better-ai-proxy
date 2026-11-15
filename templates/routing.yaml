@@ -1,10 +1,12 @@
 # The better AI proxy — subscription-free routing template.
 # Link your own providers in FlClash's native custom profile editor.
+# Gemini Mac: also enable process lookup in FlClash's global settings.
 ---
 mixed-port: 7890
 allow-lan: false
 bind-address: 127.0.0.1
 mode: rule
+find-process-mode: strict
 log-level: error
 ipv6: true
 unified-delay: true
@@ -685,6 +687,7 @@ rules:
 - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
 - IP-CIDR6,fc00::/7,DIRECT,no-resolve
 - IP-CIDR6,fe80::/10,DIRECT,no-resolve
+- PROCESS-NAME,Gemini,Gemini
 - DOMAIN,robinfrontend-pa.googleapis.com,Gemini
 - DOMAIN,robinfrontend-pa.mtls.googleapis.com,Gemini
 - DOMAIN,webchannel-robinfrontend-pa.googleapis.com,Gemini

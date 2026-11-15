@@ -16,6 +16,7 @@ check(groups.length == by_name.length, 'Duplicate group names')
 check(config.fetch('proxy-providers').empty?, 'Template must not contain subscription providers')
 check(config.fetch('proxies', []).empty?, 'Template must not contain static nodes')
 check(config['mode'] == 'rule', 'Rule mode is required')
+check(config['find-process-mode'] == 'strict', 'Process lookup must be enabled for Gemini Mac')
 check(config.dig('dns', 'enhanced-mode') == 'fake-ip', 'Unexpected DNS mode')
 check(by_name.fetch('🧩 机场订阅').fetch('use') == [], 'Template must not bind personal sources')
 check(groups.select { |g| g.key?('use') }.map { |g| g['name'] } == ['🧩 机场订阅'], 'Duplicated source binding lists')
@@ -59,7 +60,22 @@ end
   matches = rules.select { |r| r.split(',')[1] == domain }
   check(!matches.empty? && matches.all? { |r| r.split(',')[2] == target }, 'Incorrect AI domain target')
 end
-check(rules.first(4) == ['DOMAIN,localhost,DIRECT', 'DOMAIN-SUFFIX,localhost,DIRECT', 'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve', 'IP-CIDR6,::1/128,DIRECT,no-resolve'], 'Loopback rules must remain first')
+local_rules = [
+  'DOMAIN,localhost,DIRECT',
+  'DOMAIN-SUFFIX,localhost,DIRECT',
+  'IP-CIDR,127.0.0.0/8,DIRECT,no-resolve',
+  'IP-CIDR6,::1/128,DIRECT,no-resolve',
+  'IP-CIDR,10.0.0.0/8,DIRECT,no-resolve',
+  'IP-CIDR,172.16.0.0/12,DIRECT,no-resolve',
+  'IP-CIDR,192.168.0.0/16,DIRECT,no-resolve',
+  'IP-CIDR,169.254.0.0/16,DIRECT,no-resolve',
+  'IP-CIDR6,fc00::/7,DIRECT,no-resolve',
+  'IP-CIDR6,fe80::/10,DIRECT,no-resolve'
+]
+check(rules.first(local_rules.length) == local_rules, 'Loopback and LAN rules must remain first')
+gemini_process_rule = 'PROCESS-NAME,Gemini,Gemini'
+check(rules.count(gemini_process_rule) == 1 && rules[local_rules.length] == gemini_process_rule, 'Gemini process rule must follow local direct rules')
+check(rules[local_rules.length + 1] == 'DOMAIN,robinfrontend-pa.googleapis.com,Gemini', 'Gemini process rule must precede its domain rules')
 check(rules.index('DOMAIN,robinfrontend-pa.googleapis.com,Gemini') < rules.index('DOMAIN-SUFFIX,googleapis.com,🌐 Google'), 'Gemini rules must precede broad Google rules')
 
 # Simulate independent new subscriptions, without touching the template.
@@ -87,4 +103,4 @@ config.fetch('rule-providers').each_value do |provider|
   uri = URI(provider.fetch('url'))
   check(uri.scheme == 'https' && uri.userinfo.nil? && uri.query.nil?, 'Rule provider must use a public URL without credentials')
 end
-puts JSON.pretty_generate(result: 'passed', groups: groups.length, rules: rules.length, subscription_urls: 0, static_nodes: 0, new_sources: 'discovered', dependencies: 'Ruby standard library only')
+puts JSON.pretty_generate(result: 'passed', groups: groups.length, rules: rules.length, subscription_urls: 0, static_nodes: 0, gemini_process_fallback: 'after_local_direct', process_mode: config['find-process-mode'], new_sources: 'discovered', dependencies: 'Ruby standard library only')
